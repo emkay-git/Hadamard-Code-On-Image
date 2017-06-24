@@ -17,6 +17,7 @@ public class Hadamard
         // Initialize a Hadamard encoder/decoder which
         // holds a Hadamard code HC(k) of order k
         hadCode = hadCod2(k);
+        System.out.println(hadCode.length+" "+hadCode[0].length); //(2^(k+1)*2^k)
     }
     
     /*
@@ -120,10 +121,9 @@ public class Hadamard
         return vConcat(h, hNeg);
     }
     
-  
-    /*
-     * Hadamard encode
-     */
+ 
+
+    //encoding process is explained in http://homepages.math.uic.edu/~leon/mcs425-s08/handouts/Hadamard_codes.pdf
     public String encode(String word)
     {
         //if word length > (k + 1) bit it cannot be encoded
@@ -142,17 +142,17 @@ public class Hadamard
         {
             codeword += cw[i++];
         }
-        
+      
         return codeword;
     }
     
-    /*
-     * Hadamard decode
-     */
+    
+    //decoding process by weight calculation is explained in http://homepages.math.uic.edu/~leon/mcs425-s08/handouts/Hadamard_codes.pdf
     public String decode(String codeword)
     {
         //if codeword length != 2^k bit then it cannot be decoded
-        if(codeword.length() != new Double(Math.pow(2, k)).intValue()) return null;
+        if(codeword.length() != new Double(Math.pow(2, k)).intValue()){//System.out.println("It happened"); 
+        return Integer.toString(codeword.length());}
         
         int[] cw = new int[codeword.length()];
         for(int i = 0; i < codeword.length(); ++i)
@@ -164,36 +164,48 @@ public class Hadamard
         //index = (row number) of Hadamard code
         int[] weight = weight(cw, hadCode);
         
-        //get the position of the greatest weight
-        int idx = 0;
-        for (int i = 0; i < weight.length; ++i) idx = (Math.abs(weight[i]) > Math.abs(weight[idx])? i : idx);
-        if (weight[idx] < 0) idx += weight.length;
-        
-        String word = Integer.toBinaryString(idx);
-        return word;
-    }
-    
-  
-    private int[] weight(int[] v, int[][] h)
-    {
-        int[] r = new int[h[0].length];
-        // System.out.println(h[0].length);
-        // 0 -> -1 for v
-        int i = 0;
-        while(i < v.length) v[i] = (v[i++] == 0? -1 : 1);
-        
-        //dot product of v and h
-        for(int hj = 0; hj < h[0].length; ++hj)
+       
+        int ans=-1;
+        int difference = new Double(Math.pow(2,k)).intValue()/4-1;
+        int min = Integer.MAX_VALUE;
+
+        for(int i = 0;i<weight.length;i++)
         {
-            for(int vj = 0; vj < v.length; ++vj)
+           if(weight[i]<min)
+           {
+            min = weight[i];
+            ans = i;
+           }
+        }
+        // if (min > difference)
+        //     return "Can't be corrected";
+        
+        String dec = Integer.toBinaryString(ans);
+        if(dec.length()<k+1)
+        {
+            while(dec.length()<k+1)
             {
-                //h is hadamard code, to get hT simply swap row/column index
-                //so instead of using hT[vj][hj]
-                //h[hj][vj] is used because: h[i][j] = hT[j][i]
-                r[hj] += (v[vj] * h[hj][vj]);
+                dec = "0"+dec;
             }
         }
-        
+        return dec;
+    }
+    
+
+    public int[] weight(int[]v, int[][]h)
+    {
+        int [] r = new int[h.length];
+        // 
+        for(int i = 0 ;i< h.length;i++)
+        {
+            for(int j = 0 ;j<h[0].length;j++)
+            {
+                if(v[j]!=h[i][j])
+                {
+                    r[i]++;
+                }
+            }
+        }
         return r;
     }
     
@@ -201,86 +213,95 @@ public class Hadamard
   
   
 
-    /*
-     * Main method. For testing only
-     */
     public static void main(String[] args) 
     {   
         try{
-        int k = 8;
+
+        int k = 7;  // but message length is k+1 i.e. 8bits which is the size of pixel value as well.
+        
+        //this generates the hadamard matrix of size 2n*n where n = 2^k 
         Hadamard had = new Hadamard(k);
+
+        //reads all the pixel values present in binary from bin.txt it will have, img.length*img.height*3 for 3 channels
+        //number of values.
         BufferedReader br  = new BufferedReader(new FileReader("bin.txt"));
-        // System.out.println(hadCode[0].length+" "+hadCode.length);
+       
 
-
-        // String[] msg = .split(System.getProperty("line.separator"));
         String msg = "";
-        int count = 0;
+       
+        //this is to write the codeword generated from binary pixel values into codeword.txt 
         PrintWriter out = new PrintWriter("codeword.txt");
+       
+        //reading the bin.txt each line one by one and processing 
         while(true)
         {
-            count++;
+            
             msg = br.readLine();
             if(msg == null || msg.length()==0)
             {
-            //     if(msg == null)
-            //     System.out.println(count);
-            // else 
-            //     System.out.println(count+" lol");
+           
                 break;
             }
-            // if(msg.compareTo("")!=0)
+
             String cw = had.encode(msg);
+
+            //cw has encoded msg writing it to file codeword.txt
              out.println(cw);
-             // if(count == 12000)
-             //    break;
+             
         }
+        
         out.close();
 
+
+        //to write the decoded pixel values in binary.
         out = new PrintWriter("decoded.txt");
+
+        //reading the codewords from codeword.txt then introduce or not some errors in the codeword,
+        //decode it and then write in decoded.txt
         br  = new BufferedReader(new FileReader("codeword.txt"));
+        
+
+    //---------------------------------channel simulation for error introduction ---------------------------//
+        //options for number of codewords to be changed and number of error bit to be introduced is given by user.
+
         BitFlip flip; 
         int c= 0;
+        int changeCodewords = Integer.parseInt(args[0]);
+        int changeBits = Integer.parseInt(args[1]);
         while(true)
-        {
-            
+        { 
+            //reading single codeword at a time.
             msg = br.readLine();
             if(msg == null || msg.length()==0)
             {
                 break;
             }
 
-            //introducing errors here
-            if(c %10 == 0)
+            // introducing errors here
+            if(c %100 == 0&&c<=changeCodewords)
             {
-                
-            flip = new BitFlip(93,msg);
+            
+            flip = new BitFlip(changeBits,msg);
             String newCode = flip.xor();
-            // System.out.println(msg);
-            // System.out.println(newCode);
+           
+           
             msg = newCode;
+            // System.out.println(msg.length());
             
             }
+
             c++;
             int len = 0;
             // if(msg.compareTo("")!=0)
             String cw = had.decode(msg);
-            // if(cw==null||cw.length()==0)
-            //     {len = 0;
-            // cw = "";}
-            // else 
-                len = cw.length();
-
-             int a = 8 - len;
-            while(a-->0)
-            {
-                cw="0"+cw;
-            }
+       
+           
              out.println(cw);
              // if(count == 12000)
              //    break;
+            
+           
         }
-
      
         out.close();
     }
