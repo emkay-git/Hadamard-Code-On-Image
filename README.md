@@ -22,7 +22,7 @@ Output for various values of codewords which are affected. Top left is original 
 <img height="350" width="350" hspace="10" src="https://github.com/emkay-git/Hadamard-Code-On-Image/blob/master/images/60k.png" style="float: left; width: 30%; margin-right: 1%; margin-bottom: 0.5em;"><img height="350" width="350" hspace="10" src="https://github.com/emkay-git/Hadamard-Code-On-Image/blob/master/images/80k.png" style="float: left; width: 30%; margin-right: 1%; margin-bottom: 0.5em;"><p style="clear: both;">
 </p>
 
-## Improvement
+## Suggested Improvement(s)
 * Program runs a little slow at the moment, better way for generating Hadamard matrix and pixel manipulaiton may be done.
 
 
